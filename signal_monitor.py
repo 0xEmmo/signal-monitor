@@ -15,36 +15,18 @@ YOUR_PHONE = os.getenv('YOUR_PHONE', '')
 telegram_client = TelegramClient('signal_session', API_ID, API_HASH)
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-def is_new_signal(message):
-    message_upper = message.upper()
-    signal_keywords = ['BUY NOW', 'SELL NOW', 'BUY', 'SELL', 'LONG', 'SHORT']
-    ignore_keywords = ['TAKE PROFIT', 'TP1', 'TP2', 'TP3', 'TP4', 'TP5', 'STOP LOSS', 'SL:', 'CLOSED']
-    
-    for ignore_keyword in ignore_keywords:
-        if ignore_keyword in message_upper:
-            return False
-    
-    for signal_keyword in signal_keywords:
-        if signal_keyword in message_upper:
-            return True
-    
-    return False
-
 @telegram_client.on(events.NewMessage(chats=CHANNEL_ID))
 async def handler(event):
     message = event.message.text
     
-    if not is_new_signal(message):
-        print(f"📍 Update (ignored): {message[:50]}...")
-        return
+    print(f"🚨 NEW MESSAGE: {message}")
     
-    print(f"🚨 NEW SIGNAL: {message}")
-    
+    # Send phone call for EVERY message
     try:
         if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_NUMBER and YOUR_PHONE:
             twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say voice="alice">New signal alert! {message[:100]}</Say>
+    <Say voice="alice">Signal update! {message[:100]}</Say>
     <Pause length="2"/>
     <Say voice="alice">Check Telegram for details.</Say>
 </Response>"""
@@ -59,14 +41,13 @@ async def handler(event):
         print(f"❌ Call failed: {e}")
     
     try:
-        await telegram_client.send_message('me', f"📊 NEW SIGNAL:\n\n{message}")
+        await telegram_client.send_message('me', f"📊 UPDATE:\n\n{message}")
     except Exception as e:
         print(f"⚠️ Telegram save failed: {e}")
 
 async def main():
-    print("🔍 Monitoring for NEW SIGNALS...")
-    print("Ready to send PHONE CALL alerts!")
-    print("(Ignoring TP/SL updates)")
+    print("🔍 Monitoring all messages...")
+    print("Ready to send PHONE CALL for EVERY message!")
     
     try:
         async with telegram_client:
